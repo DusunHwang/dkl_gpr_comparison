@@ -73,13 +73,16 @@ def train(args):
     model.eval()
     with torch.no_grad():
         mean, sigma = model(X_test.to(device))
-        mae, rmse, r2 = regression_metrics(y_test, mean.cpu())
-        cover = coverage_within(y_test, mean.cpu(), sigma.cpu())
-        corr = sigma_mae_corr(sigma.cpu(), mean.cpu() - y_test)
+        y_true = y_test.squeeze()
+        preds = mean.cpu()
+        sig = sigma.cpu()
+        mae, rmse, r2 = regression_metrics(y_true, preds)
+        cover = coverage_within(y_true, preds, sig)
+        corr = sigma_mae_corr(sig, preds - y_true)
 
     Path('results').mkdir(exist_ok=True)
-    plot_pred_vs_true(y_test.numpy(), mean.cpu().numpy(), r2, rmse**2, 'results/pred_vs_true_ens.png')
-    plot_sigma_mae(sigma.cpu().numpy(), torch.abs(mean.cpu() - y_test).numpy(), 'results/sigma_mae_ens.png')
+    plot_pred_vs_true(y_true.numpy(), preds.numpy(), r2, rmse**2, 'results/pred_vs_true_ens.png')
+    plot_sigma_mae(sig.numpy(), torch.abs(preds - y_true).numpy(), 'results/sigma_mae_ens.png')
 
     import csv
     Path('logs').mkdir(exist_ok=True)

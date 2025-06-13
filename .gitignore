@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.python-version
+checkpoints/
+logs/
+results/
+reports/

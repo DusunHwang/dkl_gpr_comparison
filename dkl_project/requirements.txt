@@ -1,0 +1,10 @@
+# Environment requirements generated from the current runtime
+torch==2.3.0
+torchvision==0.18.0
+torchaudio==2.3.0
+gpytorch==1.10
+scikit-learn==1.7.0
+pandas==2.3.0
+matplotlib==3.10.3
+seaborn==0.13.2
+numpy==2.3.0

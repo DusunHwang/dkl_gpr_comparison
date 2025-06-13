@@ -72,7 +72,6 @@ def train(args):
     # Evaluation
     model.eval()
     with torch.no_grad():
-        mean, sigma = model(X_test.to(device))
         y_true = y_test.squeeze()
         preds = mean.cpu()
         sig = sigma.cpu()
@@ -83,6 +82,7 @@ def train(args):
     Path('results').mkdir(exist_ok=True)
     plot_pred_vs_true(y_true.numpy(), preds.numpy(), r2, rmse**2, 'results/pred_vs_true_ens.png')
     plot_sigma_mae(sig.numpy(), torch.abs(preds - y_true).numpy(), 'results/sigma_mae_ens.png')
+
 
     import csv
     Path('logs').mkdir(exist_ok=True)

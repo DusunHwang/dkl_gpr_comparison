@@ -5,3 +5,6 @@ checkpoints/
 logs/
 results/
 reports/
+data/*.csv
+models/*.pt
+plots/*.png

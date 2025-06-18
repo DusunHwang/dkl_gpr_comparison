@@ -1,5 +1,3 @@
-#compare_gpu_cpu.py
-
 import os
 import time
 import torch
@@ -12,9 +10,11 @@ from sklearn.metrics import mean_squared_error, r2_score
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm.auto import tqdm
 
 
-def generate_data(n_samples=5000, n_features=20):
+def generate_data(n_samples=50000, n_features=20):
+
     X, y = make_regression(n_samples=n_samples, n_features=n_features,
                            noise=0.1, random_state=42)
     df = pd.DataFrame(X, columns=[f"x{i}" for i in range(n_features)])
@@ -66,18 +66,19 @@ class Net(nn.Module):
         return self.seq(x)
 
 
-def train_model(device, X_train, y_train, X_val, y_val, epochs=20):
+def train_model(device, X_train, y_train, X_val, y_val, epochs=200):
+
     model = Net(X_train.shape[1]).to(device)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     train_ds = TensorDataset(X_train, y_train)
-    train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
+    train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
     log = []
     start = time.perf_counter()
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs), desc=f'Training ({device})'):
         model.train()
         total = 0
-        for xb, yb in train_loader:
+        for xb, yb in tqdm(train_loader, leave=False):
             xb, yb = xb.to(device), yb.to(device)
             optimizer.zero_grad()
             pred = model(xb)
@@ -120,9 +121,14 @@ def plot_results(y_true, y_pred, r2, mse, path):
     plt.close()
 
 
-def main():
-    df = generate_data()
-    train_df, val_df, test_df = split_and_save(df)
+def main(samples=50000, epochs=200):
+    if all(os.path.exists(f"data/{name}.csv") for name in ["train", "val", "test"]):
+        train_df = pd.read_csv("data/train.csv")
+        val_df = pd.read_csv("data/val.csv")
+        test_df = pd.read_csv("data/test.csv")
+    else:
+        df = generate_data(n_samples=samples)
+        train_df, val_df, test_df = split_and_save(df)
     feature_cols = [c for c in df.columns if c != 'y']
     target_col = 'y'
     X_train, y_train, X_val, y_val, X_test, y_test = preprocess(
@@ -130,14 +136,17 @@ def main():
 
     logs = []
     cpu_model, log_cpu, cpu_time, cpu_r2 = train_model('cpu', X_train, y_train,
-                                                       X_val, y_val)
+                                                       X_val, y_val,
+                                                       epochs=epochs)
     logs.extend(log_cpu)
     best_model = cpu_model
     best_r2 = cpu_r2
     gpu_time = None
     if torch.cuda.is_available():
         gpu_model, log_gpu, gpu_time, gpu_r2 = train_model('cuda', X_train, y_train,
-                                                           X_val, y_val)
+                                                           X_val, y_val,
+                                                           epochs=epochs)
+
         logs.extend(log_gpu)
         if gpu_r2 > best_r2:
             best_model = gpu_model
@@ -163,4 +172,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Compare CPU vs GPU training')
+    parser.add_argument('--samples', type=int, default=50000,
+                        help='Number of samples to generate')
+    parser.add_argument('--epochs', type=int, default=200,
+                        help='Training epochs for each device')
+    args = parser.parse_args()
+
+    main(samples=args.samples, epochs=args.epochs)

@@ -14,6 +14,7 @@ from tqdm.auto import tqdm
 
 
 def generate_data(n_samples=50000, n_features=20):
+
     X, y = make_regression(n_samples=n_samples, n_features=n_features,
                            noise=0.1, random_state=42)
     df = pd.DataFrame(X, columns=[f"x{i}" for i in range(n_features)])
@@ -66,6 +67,7 @@ class Net(nn.Module):
 
 
 def train_model(device, X_train, y_train, X_val, y_val, epochs=200):
+
     model = Net(X_train.shape[1]).to(device)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -144,6 +146,7 @@ def main(samples=50000, epochs=200):
         gpu_model, log_gpu, gpu_time, gpu_r2 = train_model('cuda', X_train, y_train,
                                                            X_val, y_val,
                                                            epochs=epochs)
+
         logs.extend(log_gpu)
         if gpu_r2 > best_r2:
             best_model = gpu_model
